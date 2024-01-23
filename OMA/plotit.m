@@ -22,6 +22,21 @@ ball_p = out.ball_p.Data;
 % b3 = [-length/2;-height/2];
 % b4 = [length/2;-height/2];
 
+a = [-1.0 1.0  1.0 -1.0;
+      1.0 1.0 -1.0 -1.0];
+
+a1 = a(:,1);
+a2 = a(:,2);
+a3 = a(:,3);
+a4 = a(:,4);
+
+b = [-length/2 length/2  length/2 -length/2;  
+      height/2 height/2 -height/2 -height/2];
+b1 = b(:,1);
+b2 = b(:,2);
+b3 = b(:,3);
+b4 = b(:,4);
+
 axes_limits = [-1,1,-1,1];
 for n = 1:max(size(time))
     % Body anchors in global coordinates
@@ -41,7 +56,7 @@ for n = 1:max(size(time))
     axis(axes_limits);
     set(h,"LineWidth",3);
     % axis equal;
-    if n==1
+    if n==1 
         pause;
     else
         pause(0.01);

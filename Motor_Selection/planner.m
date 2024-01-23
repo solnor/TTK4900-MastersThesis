@@ -1,6 +1,6 @@
-dtx = 0.1;
-dty = 0.1;
-dr = 0.1;
+dtx = 0.0;
+dty = 0.0;
+dr = 0.0;
 mp  = 0.25;
 Izz = 6.25e-4;
 g = 9.81;
@@ -10,7 +10,7 @@ A_c = [0  1      0  0      0 0;
        0  0      0  1      0 0;
        0  0      0 -dty/mp 0 0;
        0  0      0  0      0 1;
-       0  0      0  0      0 -dr*Izz];
+       0  0      0  0      0 -dr/Izz];
 B_c = [0    0    0;
        1/mp 0    0;
        0    0    0;
@@ -19,16 +19,15 @@ B_c = [0    0    0;
        0    0    1/Izz;];
 
 
-% dt = 10e-3;
 dt = 0.1;
-t_max = 5;
+t_max = 10;
 A_d = eye(6) + dt*A_c;
 B_d = dt*B_c;
 
 nx = 6; % Number of states
 nu = 3; % Number of inputs
 
-x0 = [-0.4;
+x0 = [-0.2;
       -0.0;
       -0.2;
        0.0;
@@ -61,8 +60,13 @@ xu = [1;
 
 [vlb, vub] = gen_constraints(N, M, xl, xu, ul, uu);
 
-q = diag(100*ones(nx,1));
-r = diag([1 1 1]);
+
+% vlb(0.5/dt*(nx)+1) = 0;
+% vlb(0.5/dt*(nx)+2) = 0;
+% vub(0.5/dt*(nx)+2) = 0;
+
+q = diag(1*ones(nx,1));
+r = diag([0 0 0]);
 Q = 2*gen_q(q,r,N,M);
 c = [];
 
@@ -72,28 +76,31 @@ b_eq = [A_d*x0;
 
 opt = optimoptions('fmincon' ,          ...
                    'Algorithm', 'sqp' , ...
-                   'MaxFunEvals', 20000);
+                   'MaxFunEvals', 5000);
 z = fmincon(@(z)0.5*z.'*Q*z, z0, [], [], A_eq, b_eq, vlb, vub, ...
-            [], opt);
-
-
-x_opt = [z0(1);z(1:nx:N*nx)];
-y_opt = [z0(3);z(3:nx:N*nx)];
-theta_opt = [z0(5);z(5:nx:N*nx)];
+            @(z)nonlcon(z,N,M,nx,nu), opt);
+%%
+x_opt = [z(1:nx:N*nx);z(N*nx-5)];
+x_opt(end-5:end)
+xd_opt = [z(2:nx:N*nx);z(N*nx-4)];
+y_opt = [z(3:nx:N*nx);z(N*nx-3)];
+theta_opt = [z(5:nx:N*nx);z(N*nx-1)];
 
 u_opt = [z(N*nx+1:N*nx + M*nu)];
-size(u_opt)
 fx_opt = [u_opt(1:nu:N*nu-2);u_opt(N*nu-2)];
 fy_opt = [u_opt(2:nu:N*nu-1);u_opt(N*nu-1)];
 t_opt  = [u_opt(3:nu:N*nu);u_opt(N*nu)];
-% fy_opt = [u(2:nu:N*nu);u(N*nu)];
-% t = dt*N*ones(size(x_opt,1),1)
+
+
+
+
 t = 0:dt:(N)*dt;
-% size(t)
+
 
 subplot(4,1,1);
 plot(t,x_opt)
 legend('x')
+
 subplot(4,1,2);
 plot(t,y_opt);
 legend('y')
@@ -107,14 +114,20 @@ plot(t,t_opt); hold off;
 legend('$f_x$', '$f_y$', '$\tau$', 'interpreter', 'latex')
 
 
+%%
+nonlcon(z,N,M,nx,nu)
 
+ts_w = timeseries([fx_opt fy_opt t_opt],t);
 
+function [ci, ceq] = nonlcon(z,N,M,nx,nu)
+    x_h     = [z(1:nx:N*nx)];
+    y_h     = [z(3:nx:N*nx)];
+    theta_h = [z(5:nx:N*nx)];
 
-
-function c = nonlcon(z)
-    x = q(1);
-    y = q(2);
-    theta = q(3);
+    u_h     = [z(N*nx+1:N*nx + M*nu)];
+    fx_h    = [u_h(1:nu:N*nu-2)];
+    fy_h    = [u_h(2:nu:N*nu-1)];
+    tau_h   = [u_h(3:nu:N*nu)];
     
     % Constant parameters
     length=0.4; % Horizontal length of platform
@@ -125,36 +138,38 @@ function c = nonlcon(z)
     b = [-length/2 length/2  length/2 -length/2;  
           height/2 height/2 -height/2 -height/2];
 
-    AT = calculate_sm(q,a,b);
-    h = null(AT);
+    ci = zeros(N,1);
+    for i = 1:N
+        % x     = x_h(i);
+        % y     = y_h(i);
+        % theta = theta_h(i);
+        q = [x_h(i); y_h(i); theta_h(i);];
+        
+        w = [fx_h(i); fy_h(i); tau_h(i)];
 
-    f_0 = -pinv(AT)*w;
-    % f_0 = w*ones(4,1);
-    f_max = 10;
-    f_min = 1;
+        
     
-    ll = zeros(4,1);
-    ul = zeros(4,1);
-    for i  = 1:4
-        ll(i) = (f_min - f_0(i))/h(i);
-        ul(i) = (f_max - f_0(i))/h(i);
+        AT = calculate_sm(q,a,b);
+        h = null(AT);
+    
+        f_0 = -pinv(AT)*w;
+        f_max = 100;
+        f_min = 10;
+        
+        ll = zeros(4,1);
+        ul = zeros(4,1);
+        for j = 1:4
+            ll(j) = (f_min - f_0(j))/h(j);
+            ul(j) = (f_max - f_0(j))/h(j);
+        end
+        mn = max(ll);
+        mx = min(ul);
+        
+        ci(i) = mn - mx;
     end
-    mn = max(ll);
-    mx = min(ul);
+    ceq = [];
     
-    % c = abs(max(ll)) - abs(min(ul));
-    c = max(ll) - min(ul);
-    % 
     
-    % if mn > mx
-    %     c = 1;
-    %     return
-    % end
-    % c = -1;
-    % if (f_min - f_0(i)) < 0
-    %     k = -1;
-    %     return
-    % end
 end
 
 function AT = calculate_sm(q, a, b)

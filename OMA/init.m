@@ -33,9 +33,10 @@ b2 = b(:,2);
 b3 = b(:,3);
 b4 = b(:,4);
 % Initial platform position
-x0 = -0.2;
-y0 = -0.2;
-psi0 = -0.0;
+x0   = 0.3;
+y0   = 0.3;
+psi0 = 0.2;
+% q0 = [0.3;0.3;0.0];
 
 % Body anchors in global coordinates
 b1g = b_to_g([x0;y0],psi0,b1);
@@ -50,6 +51,11 @@ l1n0 = norm(a(:,1) - bg(:,1));
 l2n0 = norm(a(:,2) - bg(:,2));
 l3n0 = norm(a(:,3) - bg(:,3));
 l4n0 = norm(a(:,4) - bg(:,4));
+
+
+P_gain_f = 75;
+I_gain_f = 10;
+
 %%
 
 vx = 0.1;

@@ -27,13 +27,13 @@ B_d = dt*B_c;
 nx = 6; % Number of states
 nu = 3; % Number of inputs
 
-x0 = [-0.2;
+x0 = [ 0.3;
       -0.0;
-      -0.2;
+       0.3;
        0.0;
-       0.0;
+       0.2;
        0.0;];
-
+%%
 
 N = t_max/dt;
 M = N;
@@ -61,9 +61,24 @@ xu = [1;
 [vlb, vub] = gen_constraints(N, M, xl, xu, ul, uu);
 
 
-% vlb(0.5/dt*(nx)+1) = 0;
-% vlb(0.5/dt*(nx)+2) = 0;
-% vub(0.5/dt*(nx)+2) = 0;
+vlb(1/dt*(nx)+1) = 0; % Set lower bound on x at time t=1 to 0
+vub(1/dt*(nx)+1) = 0; % Set upper bound on x at time t=1 to 0
+
+vlb(1/dt*(nx)+2) = 0; % Set lower bound on x_dot at time t=1 to 0
+vub(1/dt*(nx)+2) = 0; % Set upper bound on x_dot at time t=1 to 0
+
+vlb(1/dt*(nx)+3) = 0;
+vub(1/dt*(nx)+3) = 0;
+
+vlb(1/dt*(nx)+4) = 0;
+vub(1/dt*(nx)+4) = 0;
+
+vlb(0/dt*(nx)+5) = 0;
+vub(0/dt*(nx)+5) = 0;
+
+
+vlb(t_max/dt*(nx)+5) = 0;
+vub(t_max/dt*(nx)+5) = 0;
 
 q = diag(1*ones(nx,1));
 r = diag([0 0 0]);
@@ -84,7 +99,9 @@ x_opt = [z(1:nx:N*nx);z(N*nx-5)];
 x_opt(end-5:end)
 xd_opt = [z(2:nx:N*nx);z(N*nx-4)];
 y_opt = [z(3:nx:N*nx);z(N*nx-3)];
+yd_opt = [z(4:nx:N*nx);z(N*nx-2)];
 theta_opt = [z(5:nx:N*nx);z(N*nx-1)];
+thetad_opt = [z(6:nx:N*nx);z(N*nx)];
 
 u_opt = [z(N*nx+1:N*nx + M*nu)];
 fx_opt = [u_opt(1:nu:N*nu-2);u_opt(N*nu-2)];
@@ -117,7 +134,28 @@ legend('$f_x$', '$f_y$', '$\tau$', 'interpreter', 'latex')
 %%
 nonlcon(z,N,M,nx,nu)
 
-ts_w = timeseries([fx_opt fy_opt t_opt],t);
+% ts_w = timeseries([fx_opt fy_opt t_opt],t);
+num_variables = 2/dt;
+zero_padding = zeros(num_variables,1);
+unit_padding = ones(num_variables,1);
+size(zero_padding)
+size(fx_opt)
+fx_opt_pad = [zero_padding; t_opt];
+size(fx_opt_pad)
+data = [zero_padding zero_padding zero_padding; fx_opt fy_opt t_opt];
+t = 0:dt:(size(data,1)-1)*dt;
+ts_w = timeseries(data,t);
+
+qd = [x0(2)*unit_padding x0(4)*unit_padding x0(6)*unit_padding; xd_opt yd_opt thetad_opt];
+q  = [x0(1)*unit_padding x0(3)*unit_padding x0(5)*unit_padding; x_opt y_opt theta_opt];
+ts_qd = timeseries(qd, t);
+ts_q = timeseries(q, t);
+
+
+
+
+
+
 
 function [ci, ceq] = nonlcon(z,N,M,nx,nu)
     x_h     = [z(1:nx:N*nx)];

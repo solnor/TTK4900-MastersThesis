@@ -51,7 +51,10 @@ for n = 1:max(size(time))
     plot([a2(1),b2g(1)],[a2(2),b2g(2)],'r');
     plot([a3(1),b3g(1)],[a3(2),b3g(2)],'r');
     plot([a4(1),b4g(1)],[a4(2),b4g(2)],'r');
-    plot(ball_p(n,1),ball_p(n,2),'*');
+    % plot(ball_p(n,1),ball_p(n,2),'*');
+    % title()
+    % time(n)
+    title(time(n))
     hold off;
     axis(axes_limits);
     set(h,"LineWidth",3);

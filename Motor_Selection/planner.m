@@ -1,6 +1,6 @@
-dtx = 0.0;
-dty = 0.0;
-dr = 0.0;
+dtx = 0.5;
+dty = 0.2;
+dr = 0.2;
 mp  = 0.25;
 Izz = 6.25e-4;
 g = 9.81;
@@ -18,11 +18,18 @@ B_c = [0    0    0;
        0    0    0;
        0    0    1/Izz;];
 
+d_c = [ 0;
+        0;
+        0;
+       -g;
+        0;
+        0];
 
 dt = 0.25;
-t_max = 10;
+t_max = 5;
 A_d = eye(6) + dt*A_c;
 B_d = dt*B_c;
+d_d = dt*d_c;
 
 nx = 6; % Number of states
 nu = 3; % Number of inputs
@@ -38,7 +45,7 @@ xf = [-0.2;
        0.0;
       -0.2;
        0.0;
-      -0.0;
+       0.1;
        0.0];
 %%
 
@@ -84,9 +91,11 @@ cT = [repmat(-xf.'*2*q,1,N) zeros(1,nu*N)];
 %%
 
 A_eq = gen_aeq(A_d, B_d, N, nx, nu);
-b_eq = [A_d*x0;
-        zeros(nx*(N-1), 1)];
-
+% b_eq = [A_d*x0;
+%         zeros(nx*(N-1), 1)];
+b_eq = [A_d*x0 + d_d;
+        repmat(d_d,N-1,1)];
+%%
 opt = optimoptions('fmincon' ,          ...
                    'Algorithm', 'sqp' , ...
                    'MaxFunEvals', 8000);
@@ -159,11 +168,12 @@ end
 
 
 function [ci, ceq] = nonlcon(z,N,M,nx,nu)
-    x_h     = [z(1:nx:N*nx)];
-    xd_h    = [z(2:nx:N*nx)];
-    y_h     = [z(3:nx:N*nx)];
-    yd_h     = [z(3:nx:N*nx)];
-    theta_h = [z(5:nx:N*nx)];
+    x_h      = [z(1:nx:N*nx)];
+%     xd_h     = [z(2:nx:N*nx)];
+    y_h      = [z(3:nx:N*nx)];
+%     yd_h     = [z(4:nx:N*nx)];
+    theta_h  = [z(5:nx:N*nx)];
+%     thetad_h = [z(6:nx:N*nx)];
 
     u_h     = [z(N*nx+1:N*nx + M*nu)];
     fx_h    = [u_h(1:nu:N*nu-2)];
@@ -186,7 +196,7 @@ function [ci, ceq] = nonlcon(z,N,M,nx,nu)
         % y     = y_h(i);
         % theta = theta_h(i);
         q = [x_h(i); y_h(i); theta_h(i);];
-        qd = [xd_h(i); yd_h(i); thetad_h(i);];
+%         qd = [xd_h(i); yd_h(i); thetad_h(i);];
         
         w = [fx_h(i); fy_h(i); tau_h(i)];
 

@@ -35,7 +35,7 @@ b4 = b(:,4);
 % Initial platform position
 x0   = 0.3;
 y0   = 0.3;
-psi0 = 0.2;
+psi0 = 0.1;
 % q0 = [0.3;0.3;0.0];
 
 % Body anchors in global coordinates

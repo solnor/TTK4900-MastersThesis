@@ -19,7 +19,7 @@ B_c = [0    0    0;
        0    0    1/Izz;];
 
 
-dt = 0.1;
+dt = 0.25;
 t_max = 10;
 A_d = eye(6) + dt*A_c;
 B_d = dt*B_c;
@@ -31,8 +31,15 @@ x0 = [ 0.3;
       -0.0;
        0.3;
        0.0;
-       0.2;
+       0.1;
        0.0;];
+
+xf = [-0.2;
+       0.0;
+      -0.2;
+       0.0;
+      -0.0;
+       0.0];
 %%
 
 N = t_max/dt;
@@ -60,30 +67,21 @@ xu = [1;
 
 [vlb, vub] = gen_constraints(N, M, xl, xu, ul, uu);
 
+t_limit = 0.5;
 
-vlb(1/dt*(nx)+1) = 0; % Set lower bound on x at time t=1 to 0
-vub(1/dt*(nx)+1) = 0; % Set upper bound on x at time t=1 to 0
+[vlb,vub] = set_states_at_time_onwards(t_limit, xf(1), 1, vub, vlb, dt, nx, N);
+[vlb,vub] = set_states_at_time_onwards(t_limit, xf(2), 2, vub, vlb, dt, nx, N);
+[vlb,vub] = set_states_at_time_onwards(t_limit, xf(3), 3, vub, vlb, dt, nx, N);
+[vlb,vub] = set_states_at_time_onwards(t_limit, xf(5), 5, vub, vlb, dt, nx, N);
 
-vlb(1/dt*(nx)+2) = 0; % Set lower bound on x_dot at time t=1 to 0
-vub(1/dt*(nx)+2) = 0; % Set upper bound on x_dot at time t=1 to 0
-
-vlb(1/dt*(nx)+3) = 0;
-vub(1/dt*(nx)+3) = 0;
-
-vlb(1/dt*(nx)+4) = 0;
-vub(1/dt*(nx)+4) = 0;
-
-vlb(0/dt*(nx)+5) = 0;
-vub(0/dt*(nx)+5) = 0;
-
-
-vlb(t_max/dt*(nx)+5) = 0;
-vub(t_max/dt*(nx)+5) = 0;
 
 q = diag(1*ones(nx,1));
 r = diag([0 0 0]);
 Q = 2*gen_q(q,r,N,M);
-c = [];
+
+cT = [repmat(-xf.'*2*q,1,N) zeros(1,nu*N)];
+
+%%
 
 A_eq = gen_aeq(A_d, B_d, N, nx, nu);
 b_eq = [A_d*x0;
@@ -91,12 +89,11 @@ b_eq = [A_d*x0;
 
 opt = optimoptions('fmincon' ,          ...
                    'Algorithm', 'sqp' , ...
-                   'MaxFunEvals', 5000);
-z = fmincon(@(z)0.5*z.'*Q*z, z0, [], [], A_eq, b_eq, vlb, vub, ...
+                   'MaxFunEvals', 8000);
+z = fmincon(@(z)0.5*z.'*Q*z + cT*z, z0, [], [], A_eq, b_eq, vlb, vub, ...
             @(z)nonlcon(z,N,M,nx,nu), opt);
 %%
 x_opt = [z(1:nx:N*nx);z(N*nx-5)];
-x_opt(end-5:end)
 xd_opt = [z(2:nx:N*nx);z(N*nx-4)];
 y_opt = [z(3:nx:N*nx);z(N*nx-3)];
 yd_opt = [z(4:nx:N*nx);z(N*nx-2)];
@@ -132,16 +129,16 @@ legend('$f_x$', '$f_y$', '$\tau$', 'interpreter', 'latex')
 
 
 %%
-nonlcon(z,N,M,nx,nu)
+nonlcon(z,N,M,nx,nu);
 
 % ts_w = timeseries([fx_opt fy_opt t_opt],t);
 num_variables = 2/dt;
 zero_padding = zeros(num_variables,1);
 unit_padding = ones(num_variables,1);
-size(zero_padding)
-size(fx_opt)
+% size(zero_padding)
+% size(fx_opt)
 fx_opt_pad = [zero_padding; t_opt];
-size(fx_opt_pad)
+% size(fx_opt_pad)
 data = [zero_padding zero_padding zero_padding; fx_opt fy_opt t_opt];
 t = 0:dt:(size(data,1)-1)*dt;
 ts_w = timeseries(data,t);
@@ -151,15 +148,21 @@ q  = [x0(1)*unit_padding x0(3)*unit_padding x0(5)*unit_padding; x_opt y_opt thet
 ts_qd = timeseries(qd, t);
 ts_q = timeseries(q, t);
 
-
-
-
-
+function [vlb, vub] = set_states_at_time(t, value, state_offset, vlb, vub, dt, nx)
+    vlb(t/dt*(nx)+state_offset) = value;
+    vub(t/dt*(nx)+state_offset) = value;
+end
+function [vlb, vub] = set_states_at_time_onwards(t, value, state_offset, vlb, vub, dt, nx, N)
+    vlb(t/dt*nx + state_offset:nx:N*nx) = value;
+    vub(t/dt*nx + state_offset:nx:N*nx) = value;
+end
 
 
 function [ci, ceq] = nonlcon(z,N,M,nx,nu)
     x_h     = [z(1:nx:N*nx)];
+    xd_h    = [z(2:nx:N*nx)];
     y_h     = [z(3:nx:N*nx)];
+    yd_h     = [z(3:nx:N*nx)];
     theta_h = [z(5:nx:N*nx)];
 
     u_h     = [z(N*nx+1:N*nx + M*nu)];
@@ -176,12 +179,14 @@ function [ci, ceq] = nonlcon(z,N,M,nx,nu)
     b = [-length/2 length/2  length/2 -length/2;  
           height/2 height/2 -height/2 -height/2];
 
-    ci = zeros(N,1);
+    ci  = zeros(N,1);
+    ceq = zeros(2*N,1);
     for i = 1:N
         % x     = x_h(i);
         % y     = y_h(i);
         % theta = theta_h(i);
         q = [x_h(i); y_h(i); theta_h(i);];
+        qd = [xd_h(i); yd_h(i); thetad_h(i);];
         
         w = [fx_h(i); fy_h(i); tau_h(i)];
 
@@ -191,8 +196,8 @@ function [ci, ceq] = nonlcon(z,N,M,nx,nu)
         h = null(AT);
     
         f_0 = -pinv(AT)*w;
-        f_max = 100;
-        f_min = 10;
+        f_max = 150;
+        f_min = 20;
         
         ll = zeros(4,1);
         ul = zeros(4,1);
@@ -204,8 +209,9 @@ function [ci, ceq] = nonlcon(z,N,M,nx,nu)
         mx = min(ul);
         
         ci(i) = mn - mx;
+        ceq(i) = [];
     end
-    ceq = [];
+    
     
     
 end

@@ -1,6 +1,6 @@
-% clear all; clc;
+clear all; clc;
 % Plant parameters
-mp  = 0.25;     % Mass of platform
+mp  = 0.1;     % Mass of platform
 Izz = 6.25e-4;  % Moment of inertia about z-axis
 dtx = 0.0;      % Translational dampening coefficient in the x-direction
 dty = 0.0;      % Translational dampening coefficient in the y-direction
@@ -11,7 +11,7 @@ length = 0.4; % Horizontal length of platform
 height = 0.2; % Vertical length of platform
 
 % Continuous plant model
-A_c = [0  0 0  1       0       0;
+A_c = [0  0 0  1       0       0;        % 
        0  0 0  0       1       0;
        0  0 0  0       0       1;
        0  0 0 -dtx/mp  0       0;
@@ -114,8 +114,8 @@ z0 = [ q0;
        0.0;];
 
 zf = [ 0.2;
+       0.2;
        0.0;
-       -0.2;
        0.0;
        0.0;
        0.0];

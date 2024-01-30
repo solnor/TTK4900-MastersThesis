@@ -74,7 +74,7 @@ b4 = b(:,4);
 
 % Initial platform position
 x0       = -0.2;
-y0       = -0.0;
+y0       = -0.2;
 theta0   = 0.0;
 xd0      = 0.0;
 yd0      = 0.0;
@@ -171,9 +171,9 @@ unit_padding = ones(num_variables,1);
 
 w_opt_pad = [zero_padding zero_padding zero_padding; 
              fx_opt       fy_opt       t_opt];
-opt_q_pad  = [z0(1)*unit_padding z0(3)*unit_padding z0(5)*unit_padding; 
+opt_q_pad  = [z0(1)*unit_padding z0(2)*unit_padding z0(3)*unit_padding; 
               x_opt              y_opt              theta_opt];
-opt_qd_pad = [z0(2)*unit_padding z0(4)*unit_padding z0(6)*unit_padding; 
+opt_qd_pad = [z0(4)*unit_padding z0(5)*unit_padding z0(6)*unit_padding; 
               xd_opt             yd_opt             thetad_opt];
 
 t = 0:dt:(size(w_opt_pad,1)-1)*dt;

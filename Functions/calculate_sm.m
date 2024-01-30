@@ -1,7 +1,7 @@
 function AT = calculate_sm(q, a, b)
     theta = q(3);
 
-    ln = inverseKinematics(a, b, q, 4);
+    ln = inverse_kinematics(a, b, q, 4);
     l = calculate_l_vec(q, a, b);
     u = [l(:,1)/ln(1) l(:,2)/ln(2) l(:,3)/ln(3) l(:,4)/ln(4)];
 

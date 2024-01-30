@@ -48,8 +48,8 @@ function [z, nx, nu, N] = calculate_optimal_trajectory(A_c, B_c, d_c, ...
     
 %     [vlb,vub] = set_state_at_time_onwards(t_limit, xf(5), 5, vlb, vub, dt, nx, N);
 
-    q = diag(1*ones(nx,1));
-    r = diag([0 0 0]);
+    q = diag(10*ones(nx,1));
+    r = diag([1 1 1]);
     Q = 2*gen_q(q,r,N,M); % Hessian
     
     cT = [repmat(-xf.'*2*q,1,N) zeros(1,nu*N)]; % c^T

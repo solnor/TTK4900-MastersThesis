@@ -1,6 +1,6 @@
 time = out.simout.Time;
 data = out.simout.Data;
-data = reshape(data,3,2961);
+data = reshape(data,size(data,1),size(data,3));
 
 p = data(1:2,:,:);
 psi = data(3,:);
@@ -15,8 +15,6 @@ b2 = b(:,2);
 b3 = b(:,3);
 b4 = b(:,4);
 
-
-target_fps = 200; % Set your desired frame rate
 
 % Preallocate Data
 b1g = zeros(2, size(time, 1));
@@ -35,7 +33,7 @@ end
 axes_limits = [-0.7,0.7,-0.4,0.4];
 
 % Change this to make faster animation
-k = 25;
+k = 2;
 
 % Initial plot
 figure(1);

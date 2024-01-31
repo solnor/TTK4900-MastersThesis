@@ -7,9 +7,6 @@ dty = 0.0;      % Translational dampening coefficient in the y-direction
 dr  = 0.0;      % Rotational dampening coefficient about the z-axis
 g   = 9.81;     % Gravitational acceleration
 
-length = 0.4; % Horizontal length of platform
-height = 0.2; % Vertical length of platform
-
 % Continuous plant model
 A_c = [0  0 0  1       0       0;        % 
        0  0 0  0       1       0;
@@ -51,21 +48,20 @@ f_max = 100;
 f_ref = 25;
 
 % Anchor points
-a = [-1.0 -1.0  1.0  1.0;
-     -1.0  1.0  1.0 -1.0];
+a = [-0.7 -0.7  0.7  0.7;
+     -0.4  0.4  0.4 -0.4];
+
 length = 0.15; % Horizontal length of platform
 height = 0.02; % Vertical length of platform
+
 b = [-length/2 -length/2  length/2  length/2;  
      -height/2  height/2  height/2 -height/2];
-% a = [-1.0 1.0  1.0 -1.0;
-%       1.0 1.0 -1.0 -1.0];
+
 a1 = a(:,1);
 a2 = a(:,2);
 a3 = a(:,3);
 a4 = a(:,4);
 
-% b = [-length/2 length/2  length/2 -length/2;  
-%       height/2 height/2 -height/2 -height/2];
 b1 = b(:,1);
 b2 = b(:,2);
 b3 = b(:,3);
@@ -73,8 +69,8 @@ b4 = b(:,4);
 
 
 % Initial platform position
-x0       = -0.2;
-y0       = -0.2;
+x0       = -0.6;
+y0       = -0.6;
 theta0   = 0.0;
 xd0      = 0.0;
 yd0      = 0.0;
@@ -113,8 +109,8 @@ z0 = [ q0;
        0.0;
        0.0;];
 
-zf = [ 0.2;
-       0.2;
+zf = [ 0.0;
+       0.0;
        0.0;
        0.0;
        0.0;

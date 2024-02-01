@@ -66,6 +66,8 @@ h_p = 0.02; % Vertical length of platform
 %      -h_p/2  h_p/2  h_p/2 -h_p/2];
 b = [0      -l_p/2  l_p/2  0;  
      -h_p/2  h_p/2  h_p/2 -h_p/2]; % Triangular
+b = [-l_p/6 -l_p/2  l_p/2  l_p/6;  
+     -h_p/2  h_p/2  h_p/2 -h_p/2]; % Trapezoidal
 % a = [-1.0 1.0  1.0 -1.0;
 %       1.0 1.0 -1.0 -1.0];
 a1 = a(:,1);
@@ -82,8 +84,8 @@ b4 = b(:,4);
 
 
 % Initial platform position
-x0       = -0.0;
-y0       = -0.0;
+x0       = -0.3;
+y0       = -0.2;
 theta0   = -0.0;
 xd0      = 0.0;
 yd0      = 0.0;
@@ -103,12 +105,16 @@ end
 % l_0(:,1) = a(:,1) - bg(:,1);
 ln0 = zeros(size(b,2),1);
 for i = 1:size(ln0,1)
-    ln0(i) = norm(a(:,i) - bg(:,i));
+    % ln0(i) = norm(a(:,i) - bg(:,i));
+    ln0(i) = A*E*norm(a(:,i) - bg(:,i))/(f_ref+A*E);
+end
+t = zeros(4,1);
+for i=1:4
+    t(i) = A*E*(norm(a(:,i) - bg(:,i)) - ln0(i))/ln0(i);
 end
 
-
 % Cable force controller parameters
-P_gain_f = 75;
+P_gain_f = 60;
 I_gain_f = 10;
 
 
@@ -116,6 +122,71 @@ K_d = B_c\eye(6);
 K_f = [180*diag([1,1,1]) 10*diag([1,1,1])];
 K_r = pinv((B_c*K_f-A_c)\B_c);
 K_a = [diag([-10,-10,-1]) zeros(3,3)];
+
+%% Motor parameters
+K_v = 150;     % [rad/(s/V)] - Velocity constant
+K_e = 1/K_v;   % [V/(rad/s)] - Back-EMF constant
+n_p_pairs = 7; % [-]         - Number of pole pairs
+l_m = 8.97e-6; % [H]         - Phase self-inductance
+r_m = 39e-3;   % [Ohm]       - Phase resistance
+
+i_m_max =  21; % [A]         - Max quadrature current 
+i_m_min = -21; % [A]         - Min quadrature current 
+
+J_m = 242e-6;  % [kgm^2]     - Motor inertia
+
+r_w = 30e-3;   % [m]         - Radius of the winch the 
+               %               cable is coiled around
+
+% 
+thetar0 = ln0/r_w; % [rad]   - Initial position of rotor
+
+% Fourier coefficients for trapezoidal back-EMF unit curves
+fourier_coeff_a = [ 0.08333    0.00000     0.00000;
+                    0.00000    1.05296    -1.05296;
+                    0.07599    0.00000     0.00000;
+                    0.00000    0.00000     0.00000;
+                    0.05699    0.00000     0.00000;
+                    0.00000   -0.04211     0.04211;
+                    0.03377    0.00000     0.00000;
+                    0.00000   -0.02148     0.02148;
+                    0.01424    0.00000     0.00000;
+                    0.00000    0.00000     0.00000;
+                    0.00303    0.00000     0.00000;
+                   -0.00067    0.00870    -0.00870;
+                    0.00000    0.00000     0.00000;
+                   -0.00048    0.00623    -0.00623;
+                    0.00155    0.00000     0.00000;
+                   -0.00270    0.00000     0.00000;
+                    0.00356    0.00000     0.00000;
+                   -0.00392   -0.00364     0.00364;
+                    0.00375    0.00000     0.00000];
+
+fourier_coeff_b = [-1.23020    0.60792     0.60792;
+                    0.00000    0.00000     0.00000;
+                   -0.30874   -0.27018    -0.27018;
+                    0.04667    0.00000     0.00000;
+                   -0.10013    0.02431     0.02431;
+                    0.05305    0.00000     0.00000;
+                   -0.02686   -0.01240    -0.01240;
+                    0.04801    0.00000     0.00000;
+                   -0.01285    0.03002     0.03002;
+                    0.03709    0.00000     0.00000;
+                   -0.02140   -0.00502    -0.00502;
+                    0.02652    0.00000     0.00000;
+                   -0.02988    0.00359     0.00359;
+                    0.02005    0.00000     0.00000;
+                   -0.02932   -0.01080    -0.01080;
+                    0.01783    0.00000     0.00000;
+                   -0.02187    0.00210     0.00210;
+                    0.01768    0.00000     0.00000;
+                   -0.01422   -0.00168    -0.00168];
+
+
+% Clarke Transformation
+Clarke = 2/3*[1 -1/2       -1/2;
+              0 sqrt(3)/2  -sqrt(3)/2];
+
 %% Initial velocity in collision
 mb = 25e-3;
 s = -0.5; % Ball is dropped from a height of 0.5 [m]
@@ -132,15 +203,15 @@ z0 = [ q0;
        0.0;]; % Initial states
 
 zs = [-0.5;
-      -0.3; 
-      -0.55;
-       0.2;
-       0.2;
+      -0.2; 
+      -0.37;
+       2;
+       3.23;
        0.0]; % Starting states
 
 zf = [ 0.5;
-      -0.3;
-       0.55;
+      -0.2;
+       0.37;
        0.0;
        0.0;
        0.0]; % Final states
@@ -155,6 +226,7 @@ dt = 0.1;
 [z_int, nx, nu, N_int] = calculate_optimal_trajectory(A_c, B_c, d_c, ...
                                                       z0, zs, ...
                                                       1, ...
+                                                      0, ...
                                                       u0, ...
                                                       dt, ...
                                                       t_limit, t_end, ...
@@ -183,13 +255,14 @@ u0 = u_int(1:nu);
 t_int = 0:dt:(N_int)*dt;
 %% Trajectory planner
 
-t_end = 5;
-t_limit = 1.0;
-dt = 0.1;
+t_end = 1;
+t_limit = 0.5;
+dt = 0.05;
 
 [z_opt, nx, nu, N_opt] = calculate_optimal_trajectory(A_c, B_c, d_c, ...
                                                       zs, zf, ...
                                                       0, ...
+                                                      1, ...
                                                       u0, ...
                                                       dt, ...
                                                       t_limit, t_end, ...
@@ -216,7 +289,6 @@ tau_opt  = [u_opt(3:nu:N_opt*nu-0); u_opt(N_opt*nu-0)];
 t_opt = 0:dt:(N_opt)*dt;
 %% Combining trajectories
 x_tot     = [x_int; x_opt(2:end)];
-x_opt(2:end)
 y_tot     = [y_int; y_opt(2:end)];
 theta_tot = [theta_int; theta_opt(2:end)];
 
@@ -249,22 +321,22 @@ figure(2)
 plot(x_tot, y_tot);
 %% Plot traj planner output
 % t_opt = 0:dt:(N_opt)*dt;
-
-subplot(4,1,1);
-plot(t_opt,x_opt)
-legend('x')
-
-subplot(4,1,2);
-plot(t_opt,y_opt);
-legend('y')
-subplot(4,1,3);
-plot(t_opt,theta_opt);
-legend('theta')
-subplot(4,1,4);
-plot(t_opt,fx_opt); hold on;
-plot(t_opt,fy_opt);
-plot(t_opt,tau_opt); hold off;
-legend('$f_x$', '$f_y$', '$\tau$', 'interpreter', 'latex')
+% 
+% subplot(4,1,1);
+% plot(t_opt,x_opt)
+% legend('x')
+% 
+% subplot(4,1,2);
+% plot(t_opt,y_opt);
+% legend('y')
+% subplot(4,1,3);
+% plot(t_opt,theta_opt);
+% legend('theta')
+% subplot(4,1,4);
+% plot(t_opt,fx_opt); hold on;
+% plot(t_opt,fy_opt);
+% plot(t_opt,tau_opt); hold off;
+% legend('$f_x$', '$f_y$', '$\tau$', 'interpreter', 'latex')
 %%
 num_variables = 2/dt; % Two seconds
 zero_padding = zeros(num_variables,1);

@@ -1,5 +1,8 @@
 function [z, nx, nu, N] = calculate_optimal_trajectory(A_c, B_c, d_c, ...
                                                   x0, xf, ...
+                                                  ctrl_vel, ...
+                                                  ctrl_ang, ...
+                                                  u0, ...
                                                   dt, ...
                                                   t_limit, t_end, ...
                                                   a, b, ...
@@ -17,6 +20,7 @@ function [z, nx, nu, N] = calculate_optimal_trajectory(A_c, B_c, d_c, ...
     z0 = zeros(N*nx + M*nu, 1);  % Initial trajectory
     z0(1:nx) = x0;               % Set states for the first 
                                  % time step to initial conditions
+    % z0(nx+1:nx+nu) = u0;
 
     ul = -inf*ones(nu,1);        % Lower limit on inputs
     uu =  inf*ones(nu,1);        % Upper limit on inputs
@@ -40,18 +44,29 @@ function [z, nx, nu, N] = calculate_optimal_trajectory(A_c, B_c, d_c, ...
     
     % Set state vector at time zero to initial conditions
 %     [vlb,vub] = set_state_vector_at_time(0, x0, vlb, vub, dt, nx);
-    
+    % [vlb,vub] = set_state_at_time_onwards(0, -0.4, 0, vlb, vub, dt, nx, N); % x
     % Set lower- and upper bounds on states to the final value specified
     [vlb,vub] = set_state_at_time_onwards(t_limit, xf(1), 0, vlb, vub, dt, nx, N); % x
     [vlb,vub] = set_state_at_time_onwards(t_limit, xf(2), 1, vlb, vub, dt, nx, N); % y
     [vlb,vub] = set_state_at_time_onwards(t_limit, xf(3), 2, vlb, vub, dt, nx, N); % theta
+    if ctrl_vel
+        [vlb,vub] = set_state_at_time_onwards(t_limit, xf(4), 3, vlb, vub, dt, nx, N); % x
+        [vlb,vub] = set_state_at_time_onwards(t_limit, xf(5), 4, vlb, vub, dt, nx, N); % y
+        [vlb,vub] = set_state_at_time_onwards(t_limit, xf(6), 5, vlb, vub, dt, nx, N); % theta
+    end
+    if ctrl_ang
+        [vlb,vub] = set_state_at_time(0.25, 0, 2, vlb, vub, dt, nx);
+    end
     
 %     [vlb,vub] = set_state_at_time_onwards(t_limit, xf(5), 5, vlb, vub, dt, nx, N);
 
-    q = diag(1*ones(nx,1));
-    r = diag([0 0 0]);
+    q = diag(10*ones(nx,1));
+    r = diag([5 5 5]);
     Q = 2*gen_q(q,r,N,M); % Hessian
     
+    s = diag([1 1 1]);
+    S = gen_S(s, nx, nu, N);
+
     cT = [repmat(-xf.'*2*q,1,N) zeros(1,nu*N)]; % c^T
 
     % System of equalities
@@ -59,14 +74,13 @@ function [z, nx, nu, N] = calculate_optimal_trajectory(A_c, B_c, d_c, ...
 
     b_eq = [A_d*x0 + d_d;
             repmat(d_d,N-1,1)];
-    s = diag([10000 10000 10000]);
-    S = gen_S(s, nx, nu, N);
+    
     
     % Optimisation problem
     opt = optimoptions('fmincon' ,          ...
                    'Algorithm', 'sqp' , ...
-                   'MaxFunEvals', 8000);
-    z = fmincon(@(z)(0.5*z.'*Q*z + cT*z + z.'*S*z), ...
+                   'MaxFunEvals', 15000);
+    z = fmincon(@(z)(0.5*z.'*Q*z + cT*z), ...
                 z0, ...
                 [], [], ...
                 A_eq, b_eq, ...
@@ -86,8 +100,13 @@ function [vlb, vub] = set_state_at_time(t, value, state_offset, vlb, vub, dt, nx
 end
 
 function [vlb, vub] = set_state_at_time_onwards(t, value, state_offset, vlb, vub, dt, nx, N)
-    vlb(t/dt*nx + 1 + state_offset:nx:(N)*nx) = value;
-    vub(t/dt*nx + 1 + state_offset:nx:(N)*nx) = value;
+    if t == 0
+        vlb(1 + state_offset) = value;
+        vub(1 + state_offset) = value;
+    else
+        vlb((t/dt-1)*nx + 1 + state_offset:nx:(N)*nx) = value;
+        vub((t/dt-1)*nx + 1 + state_offset:nx:(N)*nx) = value;
+    end
 end
 
 

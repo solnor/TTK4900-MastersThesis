@@ -1,12 +1,7 @@
 %% Winch Testing
 
-l_1_rot = 2*pi*0.035
-
-TotRot = 1.5/l_1_rot
-
-TotRot*2*10^(-3)
 %% Sim
-% out = sim("Simulation\CDPR_simulation.slx")
+out = sim("Simulation\CDPR_simulation.slx")
 %% General Testing
 
 % Standard Geometric Model
@@ -30,14 +25,14 @@ q0          = [rp0; thetap0];
 
 
 %% Winch Param
-ldData = out.ld.Data;
-ldTime = out.ld.Time;
+% ldData = out.ld.Data;
+% ldTime = out.ld.Time;
 
-% Extract Data from Simulink format
-cableLengths = zeros(4, max(size(ldTime)));
-for i=1:max(size(ldTime))
-    cableLengths(:,i) = ldData(:,:,i);
-end
+% % Extract Data from Simulink format
+% cableLengths = zeros(4, max(size(ldTime)));
+% for i=1:max(size(ldTime))
+%     cableLengths(:,i) = ldData(:,:,i);
+% end
 
 % Additional Cable Lengths
 d = 0.2;                                % CADDING Horizontal cable length between pulleys (=0 if only one pulley)
@@ -45,11 +40,11 @@ h0 = 0.4;                               % CADDING Verticall Cable length between
 
 % Min/Max Cable lengths in Workspace
 lmin = 0;                               % FIX
-lmax = 2.73;                            % FIX
+lmax = 1.5;                             % FIX
 
 % Cable and Spool Dimensions
 D_c = 2*10^(-3);                        % Cable diameter
-k_s = 20;                               % Cable-Spool Factor, Pott s. 372
+k_s = 15;                               % Cable-Spool Factor, Pott s. 372
 R_s = D_c*k_s*0.5;                      % Radius of spool, Pott s. 372
 D_m = 0.02;                             % Width of "mutter-ting" on the side of the spool
 P = 2.6*10^(-3);                        % Pitch of winch drum 
@@ -58,18 +53,17 @@ P = 2.6*10^(-3);                        % Pitch of winch drum
 thetaMin = -(lmax - lmin)/(2*R_s);      % Min Angular Position of Spool/Motor
 thetaMax = (lmax - lmin)/(2*R_s);       % Max Angular Position of Spool/Motor
 
-  
 L_s = (thetaMax*P - thetaMin*P)/(2*pi);      % Length of spool
 
-
-
-
 % Initial conditions
+% x0 = 
+
+
 % x0 = WinchInitialPos(l0(1), L_s, L_min, L_max, d, h);   % Initial Linear Displacement of cable on the winch
 % theta0 = 0;                                             % Initial Angular position of spool, prob just 0
 
 
-% theta =  SIMULINK                                 % Angular position of spool
+% theta =                                                   % Angular position of spool
 % x0 = theta(1,1)*D_c;
 
 % Angular velocity of spool (SIMULIIIIINK)
@@ -84,7 +78,6 @@ L_s = (thetaMax*P - thetaMin*P)/(2*pi);      % Length of spool
 T = 30;      % Simulation time
 h0 = 0.2;     % Step size
 t = 0:h0:T;
-
 
 axes_limits = [-L_s,L_s,-L_s,h0+0.1];
 

@@ -1,4 +1,4 @@
-function [a, b, Wp, m, Iz] = initRobot(MP_len_x, MP_len_y, F_len_x, F_len_y)
+function [a, b, Wp, m, Iz] = initRobot(MP_len_x, MP_len_y, F_len_x, F_len_y, shape)
 
 % Physical parameters 
 g               = 9.81;                     % m/s^2
@@ -32,12 +32,26 @@ a4              = [F_len_x/2;-F_len_y/2];
 
 % Cable attachment point PLATFORM
 
- % b1              = [-MP_len_x/2;-MP_len_y/2];  
- b1              = [0;-MP_len_y/2];
-b2              = [-MP_len_x/2;MP_len_y/2];   
-b3              = [MP_len_x/2;MP_len_y/2];    
-% b4              = [MP_len_x/2;-MP_len_y/2];   
- b4              = b1;
+if shape == "rectangle"
+    % RECTANGLE
+    b1              = [-MP_len_x/2;-MP_len_y/2];  
+    b2              = [-MP_len_x/2;MP_len_y/2];   
+    b3              = [MP_len_x/2;MP_len_y/2];    
+    b4              = [MP_len_x/2;-MP_len_y/2];   
+elseif shape == "triangle"
+    % TRIANGLE
+    b1              = [0;-MP_len_y/2];
+    b2              = [-MP_len_x/2;MP_len_y/2];   
+    b3              = [MP_len_x/2;MP_len_y/2];     
+    b4              = b1;
+elseif shape == "trapez"
+    % TRAPEZOIDAL
+    b1              = [-MP_len_x/4;-MP_len_y/2];
+    b2              = [-MP_len_x/2;MP_len_y/2];   
+    b3              = [MP_len_x/2;MP_len_y/2];     
+    b4              = [MP_len_x/4;-MP_len_y/2];   
+end
+
 
 % Matrices of the attachment points
 a               = [a1 a2 a3 a4];        

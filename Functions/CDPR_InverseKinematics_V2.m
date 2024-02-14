@@ -12,10 +12,11 @@ function [L,l, A_transposed] = CDPR_InverseKinematics_V2(y, a, b)
 m = 4;
 
 p = y(1:2);
-phi = y(3);
+phi = y(3); % Radians
 
-R = [cosd(phi) -sind(phi);
-     sind(phi) cosd(phi)];
+
+R = [cos(phi) -sin(phi);
+     sin(phi) cos(phi)];
 
 
 % Memory allocation

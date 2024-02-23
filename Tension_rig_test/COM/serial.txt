@@ -1,0 +1,125 @@
+Windows:
+
+    string port = "\\\\.\\COM1";
+    int handle = CreateFileA(port.ptr, GENERIC_READ | GENERIC_WRITE, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null);
+    assert(handle != INVALID_HANDLE_VALUE, "Unable to open serial line");
+
+    DCB serialParams;
+    GetCommState(handle, &serialParams);
+    serialParams.BaudRate   = 115200;
+    serialParams.ByteSize   = 8;    
+    serialParams.StopBits   = ONESTOPBIT;
+    serialParams.Parity     = NOPARITY;
+    SetCommState(handle, &serialParams);
+
+    COMMTIMEOUTS serialTimeouts;
+    GetCommTimeouts(handle, &serialTimeouts);
+    serialTimeouts.ReadIntervalTimeout          = DWORD.max;
+    serialTimeouts.ReadTotalTimeoutMultiplier   = DWORD.max;
+    serialTimeouts.ReadTotalTimeoutConstant     = 100; // 100 ms to respond after trying to read from the device
+    serialTimeouts.WriteTotalTimeoutMultiplier  = 0;
+    serialTimeouts.WriteTotalTimeoutConstant    = 0;
+
+    SetCommTimeouts(handle, &serialTimeouts);
+
+    uint n;
+    int r = WriteFile(handle, &data, 1, &n, null);
+    int r = ReadFile(handle, &buf, 1, &n, null);
+
+    Timeouts, se 
+    https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-commtimeouts
+
+
+Linux:
+
+    int handle = open("/dev/ttyACM0", (O_RDWR | O_NOCTTY));
+    assert(handle >= 0, format!("Unable to open serial line (errno:%d)")(errno));
+
+    termios tty;
+    r = tcgetattr(handle, &tty);
+    assert(r >= 0);
+    
+    tty.c_cflag = (B115200 | CLOCAL | CREAD | CS8);
+    tty.c_lflag = 0;
+    tty.c_iflag = 0;
+    tty.c_oflag = 0;
+    tty.c_cc[VMIN] = 0;
+    tty.c_cc[VTIME] = 10;   // 10 tenths of a second to respond after trying to read from the device
+    
+    tcflush(handle, TCIFLUSH);
+    r = tcsetattr(handle, TCSANOW, &tty);
+    
+    int r = write(handle, &data, 1);
+    int r = read(handle, &buf, 1);
+    
+Matlab:
+    
+    serialPort = serialport(app.DropDown.Value, 115200, "Timeout",0.5);
+    write(serialPort, 'data', 'uint8')
+    res = read(serialPort, 1, 'uint8')
+    
+    
+Com port autodetect (D):
+
+    string autoDetectArduino(){        
+        auto comPorts = executeShell(join([
+			"powershell -command \"",
+				"Get-WmiObject Win32_PnPEntity | ",
+				"where { $_.name -match '\\(COM\\d+\\)' } | ",
+				"ForEach-Object { ",
+                    "try {",
+                        "$a = $_.GetDeviceProperties('DEVPKEY_DEVICE_BusReportedDeviceDesc').DeviceProperties.Data + ' : ' ",
+                    "}",
+                    "catch {}",
+                    "$a + $_.name ",
+                "}",
+			"\""]))
+            .output
+            .splitLines;
+            
+        auto ioCards = comPorts
+            .filter!(a => a.startsWith("NTNU Arduino IO Card"))
+            .map!(a => a.matchFirst(r"\((COM\d+)\)"))
+            .array;
+        if(ioCards.length){
+            return ioCards[0][1];
+        }
+        
+        // GetDeviceProperties() does not exist on Windows 7, so we can't get BusReportedDeviceDesc.
+        // Return the first Arduino instead
+        auto arduinos = comPorts
+            .filter!(a => a.startsWith("Arduino Mega 2560"))
+            .map!(a => a.matchFirst(r"\((COM\d+)\)"))
+            .array
+            .sort!((a, b) => a[1] < b[1]);
+        if(arduinos.length){
+            return arduinos[0][1];
+        }
+        
+        writeln("Unable to auto detect Arduino!");
+        writeln("Serial ports reported by \"Get-WmiObject Win32_PnPEntity\"");
+        writefln!("%-(  %s\n%)")(comPorts);
+        return "";
+    }
+    
+    string autoDetectArduino(){    
+        auto exec = executeShell("readlink -f $(find /dev/serial/by-id/ -name '*NTNU_Arduino_IO_Card*' | head -n 1)");
+        if(!exec.status){
+            return exec.output.strip;
+        }
+    
+        writeln("Unable to auto detect Arduino!");
+    
+        string[] ttys = executeShell("dmesg | grep tty")
+            .output
+            .splitLines
+            .map!(a => a.matchFirst(r".+(tty[a-zA-Z0-9]+).+")[1])
+            .uniq
+            .array;
+            
+        writeln("TTYs reported by \"dmesg | grep tty\":");
+        foreach(tty; ttys){
+            writefln!("  %s")(tty);
+        }
+        return "";
+    }

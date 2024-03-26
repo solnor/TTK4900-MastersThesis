@@ -68,7 +68,7 @@ ld3 = ld3(index:index_end);
 ld4 = ld4(index:index_end);
 
 % Parameters
-r_winch = 30e-3; %
+r_winch = 35e-3; %
 % 
 J_m = 15.17e-6; % kgm^2 https://ieeexplore.ieee.org/abstract/document/5984365
 J_m = 120e-7; 
@@ -89,7 +89,16 @@ llll = max(tau3)
 
 radps_to_rpm = 30/pi;
 aaaaa = max(ld3/r_winch*radps_to_rpm)
-
+%%
+plot(time, theta1dd_r); hold on;
+plot(time, theta2dd_r)
+plot(time, theta3dd_r)
+plot(time, theta4dd_r); hold off;
+figure(2)
+plot(time, ct1); hold on;
+plot(time, ct2)
+plot(time, ct3)
+plot(time, ct4); hold off;
 %%
 plot(time,J_m*abs(theta3dd_r))
 %%
@@ -121,4 +130,10 @@ plot(vn3,tau_en3, '.'); hold on; grid
 plot([0, 0.775], [0.3 0.3]); hold off;
 
 figure(3)
-plot(abs(ld3/r_winch),J_m*(theta3dd_r)+(tau3), '.'); grid
+plot(abs(ld1/r_winch),J_m*(theta4dd_r)+(tau1), '.'); grid
+figure(4)
+plot(abs(ld2/r_winch),J_m*(theta4dd_r)+(tau2), '.'); grid
+figure(5)
+plot(abs(ld3/r_winch),J_m*(theta4dd_r)+(tau3), '.'); grid
+figure(6)
+plot(abs(ld4/r_winch),J_m*(theta4dd_r)+(tau4), '.'); grid
